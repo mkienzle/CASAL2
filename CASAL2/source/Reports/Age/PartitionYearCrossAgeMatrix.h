@@ -30,7 +30,8 @@ namespace age {
  *
  */
 class Partition_YearCrossAgeMatrix : public niwa::Report {
-public:
+
+ public:
   Partition_YearCrossAgeMatrix(Model* model);
   virtual                     ~Partition_YearCrossAgeMatrix() = default;
   void                        DoValidate() override final;
@@ -39,6 +40,14 @@ public:
   void                        DoExecuteTabular() override final { };
   void                        DoPrepare();
   void                        DoFinalise();
+
+ private:
+  unsigned int                numWidth=5; // Defines width of columns containing numeric in the printout
+                                          // default value (1) is automatically adjusted to number of digits required to
+                                          // achieve a pretty output
+  
+  const char                  separator = ' '; // Output columns separator
+
 };
 
 } /* namespace age */

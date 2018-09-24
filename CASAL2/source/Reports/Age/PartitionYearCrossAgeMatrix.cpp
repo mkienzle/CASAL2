@@ -15,6 +15,9 @@
 
 #include <iostream>
 #include <iomanip>
+#include <math.h>
+#include <algorithm>
+#include <string.h>
 
 #include "Model/Model.h"
 #include "Partition/Accessors/All.h"
@@ -49,7 +52,8 @@ void Partition_YearCrossAgeMatrix::DoPrepare() {
 
   unsigned lowest = 9999;
   unsigned highest = 0;
-
+  string partition_name;
+  
   niwa::partition::accessors::All all_view(model_);
 
   for (auto iterator = all_view.Begin(); iterator != all_view.End();
@@ -59,20 +63,20 @@ void Partition_YearCrossAgeMatrix::DoPrepare() {
     if (highest < (*iterator)->max_age_)
       highest = (*iterator)->max_age_;
 
+    partition_name = (*iterator)->name_;
   }
 
+ 
   // Print the header
   cache_ << "*" << type_ << "[" << label_ << "]" << "\n";
+  cache_ << "category: " << partition_name << "\n";
   cache_ << "time_step: " << time_step_ << "\n";
-  //cache_ << all_view.Begin().name_ << endl;
 
   // Print the age-groups
 
-  const char separator = ' ';
-  //const int nameWidth = 6;
-  const int numWidth = 13;
   cache_ << "values "<< REPORT_R_DATAFRAME << "\n";
   cache_ << std::left << std::setw(numWidth) << std::setfill(separator) << "year"; // leave an empty space in the years's column
+
   for (unsigned i = lowest; i <= highest; ++i)
     cache_ << std::left << std::setw(numWidth) << std::setfill(separator) << "AG" + std::to_string(i);
   cache_ << "\n";
@@ -101,16 +105,39 @@ void Partition_YearCrossAgeMatrix::DoExecute() {
 
   }
 
-  const char separator = ' ';
-  //const int nameWidth = 6;
-  const int numWidth = 13;
+  //// Determine the number of digits of the largest number
+  unsigned int max_digit_nb = 0;
 
-  //cache_ <<  std::setprecision(5);
+  // Loop over all partitions
+  for (auto iterator = all_view.Begin(); iterator != all_view.End();
+       ++iterator) {
 
+    unsigned age = (*iterator)->min_age_;
+
+    // Loop over all elements of a partition
+    for (auto values = (*iterator)->data_.begin();
+	 values != (*iterator)->data_.end(); ++values, age++) {
+      if (age >= lowest && age <= highest) {
+
+        Double value = *values;
+	
+	// Count how many digits each number
+	while( ( fabs(value) / pow(10, max_digit_nb) ) > 1) max_digit_nb++;
+
+	numWidth = std::max(numWidth, max_digit_nb);
+	  
+      }} // End of loop over all elements of a partition
+
+  } // End of loop on iterator
+  
+  // Formatted output of values in the partition
   for (auto iterator = all_view.Begin(); iterator != all_view.End();
       ++iterator) {
     //cache_ << (*iterator)->name_;
     cache_ << std::left << std::setw(numWidth) << std::setfill(separator) << std::setprecision(1) << std::fixed << model_->current_year();
+
+    cache_<< numWidth << std::setfill(separator);
+    
     unsigned age = (*iterator)->min_age_;
     //unsigned year = (*iterator)->year_;
     //cout << "The year at this stage is " << year << endl;
@@ -119,7 +146,10 @@ void Partition_YearCrossAgeMatrix::DoExecute() {
       if (age >= lowest && age <= highest) {
         Double value = *values;
         //cache_ << "\t" << std::fixed << AS_DOUBLE(value);
-        cache_ << std::left << std::setw(numWidth) << std::setfill(separator) << std::setprecision(0) << std::fixed << AS_DOUBLE(value);
+        cache_ << std::right << std::setw(numWidth + 2) << std::setfill(separator) << std::setprecision(0) << std::fixed << AS_DOUBLE(value);
+
+	//std::cout << "These are the value send to file " << AS_DOUBLE(value) << std::endl;
+	
       } else
         cache_ << " " << "null";
     }
